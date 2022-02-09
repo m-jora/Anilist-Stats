@@ -3,28 +3,39 @@ import requests
 
 url = 'https://graphql.anilist.co'
 
-QUERY1 = '''
-  query ($id: Int, $page: Int, $search: String) {
-  Page (page: $page, perPage: 10) {
+LISTQUERY = '''
+  query ($id: Int, $page: Int) {
+    Page (page: $page) {
+      pageInfo{
+        hasNextPage
+      }
+      mediaList (userId: $id, type: ANIME, status_not: PLANNING) {
+        mediaId
+      }
+    }
+  }
+'''
+
+
+USERQUERY = '''
+ query ($id: Int, $page: Int, $search: String) {
+  Page (page: $page, perPage: 1) {
     users (id: $id, search: $search) {
       name
       id
-      statistics {
-        anime {
-          scores {
-            mediaIds
-          }
-        }
-      }
     }
   }
 }
 '''
 
-QUERY2 = '''
-        query ($id: Int, $page: Int, $perPage: Int, $search: String, $type: MediaType) {
-          Page (page: $page, perPage: $perPage) {
-            media (id: $id, search: $search, type: $type) {
+
+SHOWQUERY = '''
+        query ($ids: [Int], $page: Int, $search: String, $type: MediaType) {
+          Page (page: $page) {
+            pageInfo{
+              hasNextPage
+            }
+            media (id_in: $ids, search: $search, type: $type) {
               title {
                   english
                   romaji
@@ -37,59 +48,62 @@ QUERY2 = '''
   }
   '''
 
-
-
-def IDGrab(username):
+def GrabUser(username):
   variables = {
-    'search' : username,
-    'page' : 1
+    'search' : username
   }
 
-  response = requests.post(url, json = {'query' : QUERY1, 'variables': variables}).json()
-  Ids = response['data']['Page']['users'][0]['statistics']['anime']['scores']
+  response = requests.post(url, json = {'query' : USERQUERY, 'variables': variables}).json()
+  userid = response['data']['Page']['users'][0]['id']
+  return userid
 
+
+
+def ListGrab(UserID):
+  nextPage = True
+  pageNo = 0
   AllIds = []
+  while nextPage:
+    pageNo += 1
+    variables = {
+      'page' : pageNo, 
+      'id': UserID
+    }
 
-  for x in Ids:
-    AllIds.extend(x['mediaIds'])
+    response = requests.post(url, json = {'query' : LISTQUERY, 'variables': variables}).json()
+
+    nextPage = response['data']['Page']['pageInfo']['hasNextPage']
+    Ids = response['data']['Page']['mediaList']
+    for x in Ids:
+      AllIds.append(x['mediaId'])
 
   return AllIds
 
 
 def ShowInfo(AllIds):
-  requestCount = 0
   ShowInfoList = {}
+  nextPage = True
+  pageNo = 0
 
-  for ID in AllIds:
-    if requestCount == 89:
-      time.sleep(65)
-      requestCount = 0
-
+  while nextPage:
+    pageNo += 1
     variables = {
-      'id' : ID,
-      'page' : 1,
+      'ids' : AllIds,
+      'page' : pageNo,
       'type' : 'ANIME'
     }
 
-    fail=False
-    try:
-      response = requests.post(url, json = {'query' : QUERY2, 'variables': variables}).json()
-    
-    except:
-      fail = True
+    response = requests.post(url, json = {'query': SHOWQUERY, 'variables': variables}).json()
+    nextPage = response['data']['Page']['pageInfo']['hasNextPage']
+    TitleList = response['data']['Page']['media']#[0]['title']['romaji']
 
-    if not fail:
-      Titles = response['data']['Page']['media'][0]['title']['romaji']
-      ShowTags = response['data']['Page']['media'][0]['tags']
-      Tags=[]
+    for x in TitleList:
+      Title = x['title']['romaji']
+      Tags = x['tags']
+      ShowInfoList[Title] = [tag['name'] for tag in Tags]
 
-      for x in ShowTags:
-        Tags.append(x['name'])
-
-      ShowInfoList[Titles] = Tags
-    
-    requestCount+=1
   return ShowInfoList
+
 
 
 def Count(tag, ShowsList):
@@ -102,17 +116,16 @@ def Count(tag, ShowsList):
 
   return result, num
 
+
 user = input('Input Username: ')
 tag = input('Input Tag: ')
 
 
-
-AllIds = IDGrab(user)
-time.sleep(60)
+UserID = GrabUser(user)
+AllIds = ListGrab(UserID)
 ShowsList = ShowInfo(AllIds)
 
 result, num = Count(tag, ShowsList)
-
 for x in result:
   print(x)
 
