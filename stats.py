@@ -117,16 +117,69 @@ def Count(tag, ShowsList):
   return result, num
 
 
-user = input('Input Username: ')
-tag = input('Input Tag: ')
+def specific_tag():
+  user = input('Input Username: ')
+  tag = input('Input Tag: ')
+
+  UserID = GrabUser(user)
+  AllIds = ListGrab(UserID)
+  ShowsList = ShowInfo(AllIds)
+
+  result, num = Count(tag, ShowsList)
+  for x in result:
+    print(x)
+
+  print(num)
 
 
-UserID = GrabUser(user)
-AllIds = ListGrab(UserID)
-ShowsList = ShowInfo(AllIds)
 
-result, num = Count(tag, ShowsList)
-for x in result:
-  print(x)
+print('Please Select an Option:')
+print('1. Manga Stats')
+print('2. Anime Stats')
+value = int(input('Enter Selection: '))
+print()
 
-print(num)
+if value == 1:
+  print('Please Select an Option:')
+  print('1. Specific Tag Stats')
+  print('2. Specific Genre Stats')
+  print('3. Top Tags')
+  print('4. Top Genres')
+  value = int(input('Enter Selection: '))
+  print()
+
+  if value == 1:
+    pass
+
+  if value == 2:
+    pass
+
+  if value == 3:
+    pass
+  
+  if value == 4:
+    pass
+
+
+
+if value == 2:
+  print('Please Select an Option:')
+  print('1. Specific Tag Stats')
+  print('2. Specific Genere Stats')
+  print('3. Top Tags')
+  print('4. Top Genres')
+  value = int(input('Enter Selection: '))
+  print()
+
+
+  if value == 1:
+    specific_tag()
+
+  if value == 2:
+    pass
+
+  if value == 3:
+    pass
+
+  if value == 4:
+    pass 
