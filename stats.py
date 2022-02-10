@@ -28,8 +28,27 @@ USERQUERY = '''
 }
 '''
 
+GENREQUERY = '''
+query ($ids: [Int], $page: Int, $search: String, $type: MediaType) {
+          Page (page: $page) {
+            pageInfo{
+              hasNextPage
+            }
+            media (id_in: $ids, search: $search, type: $type) {
+              title {
+                  english
+                  romaji
+              }
+              genres
+          }
+      }
+  }
 
-SHOWQUERY = '''
+'''
+
+
+
+TAGQUERY = '''
         query ($ids: [Int], $page: Int, $search: String, $type: MediaType) {
           Page (page: $page) {
             pageInfo{
@@ -93,7 +112,7 @@ def ShowInfo(AllIds):
       'type' : 'ANIME'
     }
 
-    response = requests.post(url, json = {'query': SHOWQUERY, 'variables': variables}).json()
+    response = requests.post(url, json = {'query': TAGQUERY, 'variables': variables}).json()
     nextPage = response['data']['Page']['pageInfo']['hasNextPage']
     TitleList = response['data']['Page']['media']#[0]['title']['romaji']
 
@@ -101,6 +120,32 @@ def ShowInfo(AllIds):
       Title = x['title']['romaji']
       Tags = x['tags']
       ShowInfoList[Title] = [tag['name'] for tag in Tags]
+
+  return ShowInfoList
+
+
+def GenreInfo(AllIds):
+  ShowInfoList = {}
+  nextPage = True
+  pageNo = 0
+
+  while nextPage:
+    pageNo += 1
+    variables = {
+      'ids' : AllIds,
+      'page' : pageNo,
+      'type' : 'ANIME'
+    }
+
+    response = requests.post(url, json = {'query': GENREQUERY, 'variables': variables}).json()
+    nextPage = response['data']['Page']['pageInfo']['hasNextPage']
+    #print(response)
+    TitleList = response['data']['Page']['media']#[0]['title']['romaji']
+
+    for x in TitleList:
+      Title = x['title']['romaji']
+      Genres = x['genres']
+      ShowInfoList[Title] = Genres
 
   return ShowInfoList
 
@@ -117,6 +162,22 @@ def Count(tag, ShowsList):
   return result, num
 
 
+def specific_genre():
+  user = input('Input Username: ')
+  tag = input('Input Genre: ')
+
+  UserID = GrabUser(user)
+  AllIds = ListGrab(UserID)
+  ShowsList = GenreInfo(AllIds)
+
+  result, num = Count(tag, ShowsList)
+  print()
+  print('Number of Shows that Match: ', num, '\n')
+  print('Shows that match given genre:')
+  for x in result:
+    print(x)
+
+
 def specific_tag():
   user = input('Input Username: ')
   tag = input('Input Tag: ')
@@ -126,10 +187,11 @@ def specific_tag():
   ShowsList = ShowInfo(AllIds)
 
   result, num = Count(tag, ShowsList)
+  print()
+  print('Number of Shows that Match: ', num, '\n')
+  print('Shows that match given tag:')
   for x in result:
     print(x)
-
-  print(num)
 
 
 
@@ -176,7 +238,7 @@ if value == 2:
     specific_tag()
 
   if value == 2:
-    pass
+    specific_genre()
 
   if value == 3:
     pass
